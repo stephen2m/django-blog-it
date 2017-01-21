@@ -1,6 +1,5 @@
 import re
 import htmlentitydefs
-from bs4 import BeautifulSoup
 from django import template
 from pygments import highlight
 from pygments.lexers import guess_lexer
@@ -35,7 +34,7 @@ def unescape(text):
                 text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
-        return text # leave as is
+        return text  # leave as is
     return re.sub("&#?\w+;", fixup, text)
 
 
@@ -61,6 +60,6 @@ def pygmentify(value):
 
         to_return += value[last_end:]
 
-        return to_return
+        return unescape(to_return)
     except Exception:
         return value

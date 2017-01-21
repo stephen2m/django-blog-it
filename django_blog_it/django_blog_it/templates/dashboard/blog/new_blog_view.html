@@ -29,7 +29,7 @@
                         <td><strong>Author</strong>: {{ blog_post.user }}</td>
                     </tr>
                     <tr>
-                        <td><strong>Content</strong>: {{ blog_post.content|pygmentify|safe }}</td>
+                        <td><strong>Content</strong>: {% cache 500 blog_content %}{{ blog_post.content|pygmentify|safe }}{% endcache %}</td>
                     </tr>
                     <tr>
                         <td><strong>Status</strong>: {{ blog_post.status }}</td>
