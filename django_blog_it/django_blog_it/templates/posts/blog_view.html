@@ -1,6 +1,12 @@
 {% extends 'posts/base.html' %}
 {% load blog_tags %}
+{% load highlight_code %}
+{% load cache %}
+{% load staticfiles %}
 {% block title %} {{ blog_name.title }} {% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/pygmentify.css' %}" type="text/css">
+{% endblock %}
 {% block blog_content %}
 <div class="row col-sm-12 col-md-9 blog-container-left">
 <!-- breadcrumbs-schema -->
@@ -50,7 +56,8 @@
             </td>
           </tr>
           <tr>
-            <td><strong>Content</strong>: <div class="content" itemprop="articleBody">{{ blog_name.content|safe }}</div></td>
+            <td><strong>Content</strong>: <div class="content" itemprop="articleBody">
+                {% cache 500 blog_content %}{{ blog_name.content|pygmentify|safe }}{% endcache %}</div></td>
           </tr>
           <tr>
             <td class="widget tags"><strong>Tags</strong>:

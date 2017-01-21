@@ -1,13 +1,27 @@
 {% extends 'dashboard/new_base.html' %}
-    {% block title %}Posts View{% endblock %}
-    {% block content %}
+
+{% load blog_tags %}
+
+{% load highlight_code %}
+
+{% load cache %}
+
+{% load staticfiles %}
+
+{% block title %}Posts View{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/pygmentify.css' %}" type="text/css">
+{% endblock %}
+
+{% block content %}
 
     <div class="row no_row_margin table_row">
         <div class="container-fluid">
             <table align="center" class="table table-bordered">
                 <thead>
                     <th>
-                        Title: {{ blog_post.title }}
+                        {{ blog_post.title }}
                     </th>
                 </thead>
                 <tbody>
@@ -15,7 +29,7 @@
                         <td><strong>Author</strong>: {{ blog_post.user }}</td>
                     </tr>
                     <tr>
-                        <td><strong>Content</strong>: {{ blog_post.content|safe }}</td>
+                        <td><strong>Content</strong>: </td>
                     </tr>
                     <tr>
                         <td><strong>Status</strong>: {{ blog_post.status }}</td>
@@ -32,4 +46,4 @@
     </div>
     <!-- end div of row -->
 
-    {% endblock %}
+{% endblock %}
