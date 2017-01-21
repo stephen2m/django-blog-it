@@ -1,5 +1,5 @@
 pre .hll { background-color: #ffffcc }
-pre  { background: #f0f0f0; border: none; padding: 0; margin: 0;}
+pre  { background: #f0f0f0; }
 pre .c { color: #60a0b0; font-style: italic } /* Comment */
 pre .err { border: 1px solid #FF0000 } /* Error */
 pre .k { color: #007020; font-weight: bold } /* Keyword */
@@ -63,7 +63,7 @@ pre .vc { color: #bb60d5 } /* Name.Variable.Class */
 pre .vg { color: #bb60d5 } /* Name.Variable.Global */
 pre .vi { color: #bb60d5 } /* Name.Variable.Instance */
 pre .il { color: #40a070 } /* Literal.Number.Integer.Long */.highlight pre .hll { background-color: #49483e }
-.highlight pre  { background: #272822; color: #f8f8f2; padding: 10px; margin: 10px 0; }
+.highlight pre  { background: #272822; color: #f8f8f2; }
 .highlight pre .c { color: #75715e } /* Comment */
 .highlight pre .err { color: #960050; background-color: #1e0010 } /* Error */
 .highlight pre .k { color: #66d9ef } /* Keyword */
