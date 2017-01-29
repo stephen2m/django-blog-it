@@ -1,43 +1,47 @@
-import uuid
 import json
-from PIL import Image
 import os
+import uuid
+
 import requests
-from django.db.models.aggregates import Max
-from django.shortcuts import render, render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, HttpResponse, Http404
-from django.contrib import messages
-from django.contrib import auth
-from django.contrib.auth import logout, authenticate, login, load_backend
-from django.contrib.auth.decorators import user_passes_test, login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.core.files import File
-from django import forms
-from django.forms import inlineformset_factory
-from .models import Menu, Post, PostHistory, Category, Tags, Image_File, \
-    STATUS_CHOICE, ROLE_CHOICE, UserRole, Page, Theme, Google, Facebook, \
-    Post_Slugs
-from .forms import *
-# from django_blog_it import settings
+from PIL import Image
 from django.conf import settings
+from django.contrib import auth
+from django.contrib import messages
+from django.contrib.auth import logout, login, load_backend
+from django.contrib.auth.decorators import user_passes_test, login_required
+from django.core.files import File
+from django.db.models.aggregates import Max
+from django.forms import inlineformset_factory
+from django.http import HttpResponseRedirect, HttpResponse, Http404
+from django.shortcuts import render, render_to_response, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+
+from .forms import *
+from .models import PostHistory, Tags, Image_File, \
+    STATUS_CHOICE, UserRole, Google, Facebook, \
+    Post_Slugs
+
 try:
     from django.contrib.auth import get_user_model
+
     User = get_user_model()
 except ImportError:
     from django.contrib.auth.models import User
-from django.contrib.auth.mixins import LoginRequiredMixin 
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.urlresolvers import reverse, reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, DeleteView,\
+from django.views.generic import ListView, DetailView, CreateView, DeleteView, \
     UpdateView, FormView, TemplateView, View
 from django.views.generic.edit import ProcessFormView
-from .mixins import AdminMixin, PostAccessRequiredMixin, AdminOnlyMixin, AuthorNotAllowedMixin
+from .mixins import AdminMixin, PostAccessRequiredMixin, AdminOnlyMixin, \
+    AuthorNotAllowedMixin
 from django.http import JsonResponse
 
 admin_required = user_passes_test(lambda user: user.is_active, login_url='/')
 
 
 def active_admin_required(view_func):
-    decorated_view_func = login_required(admin_required(view_func), login_url='/')
+    decorated_view_func = login_required(admin_required(view_func),
+                                         login_url='/')
     return decorated_view_func
 
 
@@ -46,8 +50,9 @@ class AdminLoginView(FormView):
     form_class = AdminLoginForm
 
     def dispatch(self, request, *args, **kwargs):
-        if(request.user.is_authenticated and request.user.is_active):
+        if request.user.is_authenticated and request.user.is_active:
             return HttpResponseRedirect(reverse_lazy("blog"))
+
         return super(AdminLoginView, self).dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -127,7 +132,8 @@ class PostCreateView(AdminMixin, CreateView):
     def form_valid(self, form):
         self.blog_post = form.save(commit=False)
         formset = inlineformset_factory(
-            Post, Post_Slugs, can_delete=True, extra=3, fields=('slug', 'is_active'), formset=CustomBlogSlugInlineFormSet)
+            Post, Post_Slugs, can_delete=True, extra=3,
+            fields=('slug', 'is_active'), formset=CustomBlogSlugInlineFormSet)
         formset = formset(self.request.POST, instance=self.blog_post)
         if not formset.is_valid():
             return JsonResponse({'error': True, "response": formset.errors})
@@ -165,7 +171,9 @@ class PostCreateView(AdminMixin, CreateView):
         context['tags_list'] = tags_list
         context['add_blog'] = True
         self.formset = inlineformset_factory(
-            Post, Post_Slugs, can_delete=True, extra=3, fields=('slug', 'is_active'), formset=CustomBlogSlugInlineFormSet, widgets={'slug': forms.TextInput(attrs={'class': 'form-control'})})
+            Post, Post_Slugs, can_delete=True, extra=3,
+            fields=('slug', 'is_active'), formset=CustomBlogSlugInlineFormSet,
+            widgets={'slug': forms.TextInput(attrs={'class': 'form-control'})})
         context['formset'] = self.formset()
         return context
 
@@ -182,7 +190,8 @@ class PostEditView(AdminMixin, UpdateView):
         if request.POST:
             instance = self.get_object()
             if request.POST.get("history_id"):
-                history_post = instance.history.filter(id=request.POST.get("history_id")).last()
+                history_post = instance.history.filter(
+                    id=request.POST.get("history_id")).last()
                 if history_post:
                     return JsonResponse({"content": history_post.content})
         return super(PostEditView, self).dispatch(request, *args, **kwargs)
@@ -199,7 +208,8 @@ class PostEditView(AdminMixin, UpdateView):
 
     def form_valid(self, form):
         formset = inlineformset_factory(
-            Post, Post_Slugs, can_delete=True, extra=3, fields=('slug', 'is_active'), formset=CustomBlogSlugInlineFormSet)
+            Post, Post_Slugs, can_delete=True, extra=3,
+            fields=('slug', 'is_active'), formset=CustomBlogSlugInlineFormSet)
         formset = formset(self.request.POST, instance=self.get_object())
         if not formset.is_valid():
             return JsonResponse({'error': True, "response": formset.errors})
@@ -209,7 +219,8 @@ class PostEditView(AdminMixin, UpdateView):
         previous_content = self.get_object().content
         self.blog_post = form.save(commit=False)
         # self.blog_post.user = self.request.user
-        if self.request.user.is_superuser or get_user_role(self.request.user) != 'Author':
+        if self.request.user.is_superuser or get_user_role(
+                self.request.user) != 'Author':
             self.blog_post.status = self.request.POST.get('status')
         else:
             self.blog_post.status = previous_status
@@ -249,7 +260,8 @@ class PostEditView(AdminMixin, UpdateView):
         context['categories_list'] = categories_list
         context['history_list'] = self.get_object().history.all()
         self.formset = inlineformset_factory(
-            Post, Post_Slugs, can_delete=True, extra=3, fields=('slug', 'is_active'), formset=CustomBlogSlugInlineFormSet, 
+            Post, Post_Slugs, can_delete=True, extra=3,
+            fields=('slug', 'is_active'), formset=CustomBlogSlugInlineFormSet,
             widgets={'slug': forms.TextInput(attrs={'class': 'form-control'})})
         context['formset'] = self.formset(instance=self.get_object())
         return context
@@ -288,7 +300,8 @@ class PostDeleteView(PostAccessRequiredMixin, DeleteView):
             )
             messages.success(
                 request,
-                'Blog "' + str(blog_post.title) + '" has been restored from trash.'
+                'Blog "' + str(
+                    blog_post.title) + '" has been restored from trash.'
             )
             return HttpResponseRedirect(self.success_url)
         elif request.POST.get("action") == "delete":
@@ -315,7 +328,8 @@ class CategoryList(AdminMixin, TemplateView, ProcessFormView):
             else:
                 queryset = queryset.filter(is_active=False)
         if self.request.POST.get('search_text'):
-            queryset = queryset.filter(name__icontains=self.request.POST.get('search_text'))
+            queryset = queryset.filter(
+                name__icontains=self.request.POST.get('search_text'))
         return queryset
 
     def get_context_data(self, *args, **kwargs):
@@ -334,7 +348,8 @@ class CategoryCreateView(AdminOnlyMixin, CreateView):
     def form_valid(self, form):
         form.save()
         messages.success(self.request, 'Successfully added your category')
-        return JsonResponse({'error': False, 'response': 'Successfully added your category'})
+        return JsonResponse(
+            {'error': False, 'response': 'Successfully added your category'})
 
     def form_invalid(self, form):
         return JsonResponse({'error': True, 'response': form.errors})
@@ -349,16 +364,17 @@ class CategoryUpdateView(AdminOnlyMixin, UpdateView):
     def form_valid(self, form):
         form.save()
         messages.success(self.request, 'Successfully updated your category')
-        return JsonResponse({'error': False, 'response': 'Successfully updated your category'})
+        return JsonResponse(
+            {'error': False, 'response': 'Successfully updated your category'})
 
     def form_invalid(self, form):
         return JsonResponse({'error': True, 'response': form.errors})
 
 
 class CategoryStatusUpdateView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
-        category = get_object_or_404(Category, slug=kwargs.get("category_slug"))
+        category = get_object_or_404(Category,
+                                     slug=kwargs.get("category_slug"))
         if category.is_active:
             category.is_active = False
         else:
@@ -368,46 +384,58 @@ class CategoryStatusUpdateView(AdminOnlyMixin, View):
 
 
 class CategoryDeleteView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
-        category = get_object_or_404(Category, slug=kwargs.get("category_slug"))
+        category = get_object_or_404(Category,
+                                     slug=kwargs.get("category_slug"))
         category.delete()
         return HttpResponseRedirect(reverse_lazy("categories"))
 
 
 class BlogPostBulkActionsView(AuthorNotAllowedMixin, View):
-
     def get(self, request, *args, **kwargs):
         if 'blog_ids[]' in request.GET:
-            blog_posts = Post.objects.filter(id__in=request.GET.getlist('blog_ids[]'))
-            if request.GET.get('action') in [status[0] for status in STATUS_CHOICE]:
+            blog_posts = Post.objects.filter(
+                id__in=request.GET.getlist('blog_ids[]'))
+            if request.GET.get('action') in [status[0] for status in
+                                             STATUS_CHOICE]:
                 blog_posts.update(status=request.GET.get('action'))
-                messages.success(request, "successfully updated status to " + request.GET.get('action'))
+                messages.success(request,
+                                 "successfully updated status to " + request.GET.get(
+                                     'action'))
             elif request.GET.get('action') == 'Delete':
                 PostHistory.objects.filter(post__in=blog_posts).delete()
                 blog_posts.delete()
             return HttpResponse(json.dumps({'response': True}))
         else:
-            messages.warning(request, 'Please select a record to perform action')
+            messages.warning(request,
+                             'Please select a record to perform action')
             return HttpResponse(json.dumps({'response': False}))
 
 
 class CategoryBulkActionsView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
         if 'blog_ids[]' in request.GET:
             if request.GET.get('action') == 'True':
-                Category.objects.filter(id__in=request.GET.getlist('blog_ids[]')).update(is_active=True)
-                messages.success(request, 'Selected Categories successfully updated as Active')
+                Category.objects.filter(
+                    id__in=request.GET.getlist('blog_ids[]')).update(
+                    is_active=True)
+                messages.success(request,
+                                 'Selected Categories successfully updated as Active')
             elif request.GET.get('action') == 'False':
-                Category.objects.filter(id__in=request.GET.getlist('blog_ids[]')).update(is_active=False)
-                messages.success(request, 'Selected Categories successfully updated as Inactive')
+                Category.objects.filter(
+                    id__in=request.GET.getlist('blog_ids[]')).update(
+                    is_active=False)
+                messages.success(request,
+                                 'Selected Categories successfully updated as Inactive')
             elif request.GET.get('action') == 'Delete':
-                Category.objects.filter(id__in=request.GET.getlist('blog_ids[]')).delete()
-                messages.success(request, 'Selected Categories successfully deleted!')
+                Category.objects.filter(
+                    id__in=request.GET.getlist('blog_ids[]')).delete()
+                messages.success(request,
+                                 'Selected Categories successfully deleted!')
             return JsonResponse({'response': True})
         else:
-            messages.warning(request, 'Please select a record to perform this action')
+            messages.warning(request,
+                             'Please select a record to perform this action')
             return JsonResponse({'response': False})
 
 
@@ -443,10 +471,10 @@ def upload_photos(request):
         os.remove(os.path.join(settings.BASE_DIR, thumbnail_name))
         upurl = obj.upload.url
     return HttpResponse(
-            """<script type='text/javascript'>
-            window.parent.CKEDITOR.tools.callFunction({0}, '{1}');
-            </script>""".format(request.GET['CKEditorFuncNum'], upurl)
-        )
+        """<script type='text/javascript'>
+        window.parent.CKEDITOR.tools.callFunction({0}, '{1}');
+        </script>""".format(request.GET['CKEditorFuncNum'], upurl)
+    )
 
 
 def get_user_role(user):
@@ -461,7 +489,8 @@ def recent_photos(request):
     ''' returns all the images from the data base '''
 
     imgs = []
-    for obj in Image_File.objects.filter(is_image=True).order_by("-date_created"):
+    for obj in Image_File.objects.filter(is_image=True).order_by(
+            "-date_created"):
         upurl = obj.upload.url
         thumburl = obj.thumbnail.url
         imgs.append({'src': upurl, 'thumb': thumburl, 'is_image': True})
@@ -475,7 +504,8 @@ class UserListView(AdminOnlyMixin, ListView):
     def get_queryset(self):
         queryset = User.objects.all()
         if self.request.GET.get('select_role'):
-            queryset = queryset.filter(userrole__role=self.request.GET.get('select_role'))
+            queryset = queryset.filter(
+                userrole__role=self.request.GET.get('select_role'))
         if self.request.GET.get('search_text'):
             queryset = queryset.filter(
                 username__icontains=self.request.GET.get('search_text')
@@ -502,7 +532,8 @@ class UserCreateView(AdminOnlyMixin, CreateView):
         user = form.save()
         UserRole.objects.create(user=user, role=form.cleaned_data.get('role'))
         messages.success(self.request, 'Successfully added your User')
-        return JsonResponse({"error": False, "response": "Successfully added your User"})
+        return JsonResponse(
+            {"error": False, "response": "Successfully added your User"})
 
     def form_invalid(self, form):
         return JsonResponse({"error": True, "response": form.errors})
@@ -526,9 +557,13 @@ class UserUpdateView(AdminOnlyMixin, UpdateView):
             urole.role = form.cleaned_data.get('role')
             urole.save()
         else:
-            UserRole.objects.create(user=user, role=form.cleaned_data.get('role'))
-        messages.success(self.request, 'Successfully Updated User "' + str(user) + '"')
-        return JsonResponse({'error': False, 'response': 'Successfully Updated User "' + str(user) + '"'})
+            UserRole.objects.create(user=user,
+                                    role=form.cleaned_data.get('role'))
+        messages.success(self.request,
+                         'Successfully Updated User "' + str(user) + '"')
+        return JsonResponse({'error': False,
+                             'response': 'Successfully Updated User "' + str(
+                                 user) + '"'})
 
     def form_invalid(self, form):
         return JsonResponse({'error': True, 'response': form.errors})
@@ -554,7 +589,6 @@ def user_status_update(request, pk):
 
 
 class UserDeleteView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
         user = get_object_or_404(User, id=kwargs.get("pk"))
         user.delete()
@@ -563,21 +597,29 @@ class UserDeleteView(AdminOnlyMixin, View):
 
 
 class UserBulkActionsView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
         if 'user_ids[]' in request.GET:
             if request.GET.get('action') == 'True':
-                User.objects.filter(id__in=request.GET.getlist('user_ids[]')).update(is_active=True)
-                messages.success(request, 'Selected Users successfully updated as Active')
+                User.objects.filter(
+                    id__in=request.GET.getlist('user_ids[]')).update(
+                    is_active=True)
+                messages.success(request,
+                                 'Selected Users successfully updated as Active')
             elif request.GET.get('action') == 'False':
-                User.objects.filter(id__in=request.GET.getlist('user_ids[]')).update(is_active=False)
-                messages.success(request, 'Selected Users successfully updated as Inactive')
+                User.objects.filter(
+                    id__in=request.GET.getlist('user_ids[]')).update(
+                    is_active=False)
+                messages.success(request,
+                                 'Selected Users successfully updated as Inactive')
             elif request.GET.get('action') == 'Delete':
-                User.objects.filter(id__in=request.GET.getlist('user_ids[]')).delete()
-                messages.success(request, 'Selected Users successfully deleted!')
+                User.objects.filter(
+                    id__in=request.GET.getlist('user_ids[]')).delete()
+                messages.success(request,
+                                 'Selected Users successfully deleted!')
             return JsonResponse({'response': True})
         else:
-            messages.warning(request, 'Please select a record to perform the action')
+            messages.warning(request,
+                             'Please select a record to perform the action')
             return JsonResponse({'response': False})
 
 
@@ -614,7 +656,8 @@ class PagesListView(AdminMixin, ListView):
             else:
                 queryset = queryset.filter(is_active=False)
         if self.request.GET.get('search_text'):
-            queryset = queryset.filter(title__icontains=self.request.GET.get('search_text'))
+            queryset = queryset.filter(
+                title__icontains=self.request.GET.get('search_text'))
         return queryset
 
 
@@ -625,7 +668,8 @@ class PageCreateView(AdminOnlyMixin, CreateView):
     def form_valid(self, form):
         form.save()
         messages.success(self.request, 'Successfully added your page')
-        return JsonResponse({'error': False, 'response': 'Successfully added your page'})
+        return JsonResponse(
+            {'error': False, 'response': 'Successfully added your page'})
 
     def form_invalid(self, form):
         return JsonResponse({'error': True, 'response': form.errors})
@@ -640,7 +684,8 @@ class PageUpdateView(AdminOnlyMixin, UpdateView):
     def form_valid(self, form):
         form.save()
         messages.success(self.request, 'Successfully updated your page')
-        return JsonResponse({'error': False, 'response': 'Successfully updated your page'})
+        return JsonResponse(
+            {'error': False, 'response': 'Successfully updated your page'})
 
     def form_invalid(self, form):
         return JsonResponse({'error': True, 'response': form.errors})
@@ -658,7 +703,6 @@ def page_status_update(request, page_slug):
 
 
 class PageDeleteView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
         page = get_object_or_404(Page, slug=kwargs.get("page_slug"))
         page.delete()
@@ -667,21 +711,29 @@ class PageDeleteView(AdminOnlyMixin, View):
 
 
 class BulkActionsPageView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
         if 'page_ids[]' in request.GET:
             if request.GET.get('action') == 'True':
-                Page.objects.filter(id__in=request.GET.getlist('page_ids[]')).update(is_active=True)
-                messages.success(request, 'Selected Pages successfully updated as Active')
+                Page.objects.filter(
+                    id__in=request.GET.getlist('page_ids[]')).update(
+                    is_active=True)
+                messages.success(request,
+                                 'Selected Pages successfully updated as Active')
             elif request.GET.get('action') == 'False':
-                Page.objects.filter(id__in=request.GET.getlist('page_ids[]')).update(is_active=False)
-                messages.success(request, 'Selected Pages successfully updated as Inactive')
+                Page.objects.filter(
+                    id__in=request.GET.getlist('page_ids[]')).update(
+                    is_active=False)
+                messages.success(request,
+                                 'Selected Pages successfully updated as Inactive')
             elif request.GET.get('action') == 'Delete':
-                Page.objects.filter(id__in=request.GET.getlist('page_ids[]')).delete()
-                messages.success(request, 'Selected Pages successfully deleted!')
+                Page.objects.filter(
+                    id__in=request.GET.getlist('page_ids[]')).delete()
+                messages.success(request,
+                                 'Selected Pages successfully deleted!')
             return JsonResponse({'response': True})
         else:
-            messages.warning(request, 'Please select a record to perform this action')
+            messages.warning(request,
+                             'Please select a record to perform this action')
             return JsonResponse({'response': False})
 
 
@@ -697,7 +749,8 @@ class MenuListView(AdminMixin, ListView):
             else:
                 queryset = queryset.filter(status=False)
         if self.request.GET.get('search_text'):
-            queryset = queryset.filter(title__icontains=self.request.GET.get('search_text'))
+            queryset = queryset.filter(
+                title__icontains=self.request.GET.get('search_text'))
         return queryset
 
 
@@ -713,7 +766,8 @@ class MenuCreateView(AdminOnlyMixin, CreateView):
             menu_obj.url = menu_obj.url + '/'
         menu_obj.save()
         messages.success(self.request, 'Successfully added menu.')
-        return JsonResponse({'error': False, 'response': 'Successfully added menu.'})
+        return JsonResponse(
+            {'error': False, 'response': 'Successfully added menu.'})
 
     def form_invalid(self, form):
         return JsonResponse({'error': True, 'response': form.errors})
@@ -731,12 +785,18 @@ class MenuUpdateView(AdminOnlyMixin, UpdateView):
         updated_menu_obj = form.save(commit=False)
         if updated_menu_obj.parent != current_parent:
             if updated_menu_obj.parent.id == updated_menu_obj.id:
-                return JsonResponse({'error': True, 'message': 'you can not choose the same as parent'})
-            menu_count = Menu.objects.filter(parent=updated_menu_obj.parent).count()
+                return JsonResponse({'error': True,
+                                     'message': 'you can not choose the same as parent'})
+            menu_count = Menu.objects.filter(
+                parent=updated_menu_obj.parent).count()
             updated_menu_obj.lvl = menu_count + 1
-            menu_max_lvl = Menu.objects.filter(parent=current_parent).aggregate(Max('lvl'))['lvl__max']
+            menu_max_lvl = \
+            Menu.objects.filter(parent=current_parent).aggregate(Max('lvl'))[
+                'lvl__max']
             if menu_max_lvl != 1:
-                for i in Menu.objects.filter(parent=current_parent, lvl__gt=current_lvl, lvl__lte=menu_max_lvl):
+                for i in Menu.objects.filter(parent=current_parent,
+                                             lvl__gt=current_lvl,
+                                             lvl__lte=menu_max_lvl):
                     i.lvl = i.lvl - 1
                     i.save()
         if updated_menu_obj.url[-1] != '/':
@@ -744,7 +804,8 @@ class MenuUpdateView(AdminOnlyMixin, UpdateView):
         updated_menu_obj.save()
 
         messages.success(self.request, 'Successfully updated menu')
-        return JsonResponse({'error': False, 'response': 'Successfully updated menu'})
+        return JsonResponse(
+            {'error': False, 'response': 'Successfully updated menu'})
 
     def form_invalid(self, form):
         return JsonResponse({'error': True, 'response': form.errors})
@@ -762,21 +823,29 @@ def menu_status_update(request, pk):
 
 
 class MenuBulkActionsView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
         if 'menu_ids[]' in request.GET:
             if request.GET.get('action') == 'True':
-                Menu.objects.filter(id__in=request.GET.getlist('menu_ids[]')).update(status=True)
-                messages.success(request, "Selected Menu's successfully updated as Active")
+                Menu.objects.filter(
+                    id__in=request.GET.getlist('menu_ids[]')).update(
+                    status=True)
+                messages.success(request,
+                                 "Selected Menu's successfully updated as Active")
             elif request.GET.get('action') == 'False':
-                Menu.objects.filter(id__in=request.GET.getlist('menu_ids[]')).update(status=False)
-                messages.success(request, "Selected Menu's successfully updated as Inactive")
+                Menu.objects.filter(
+                    id__in=request.GET.getlist('menu_ids[]')).update(
+                    status=False)
+                messages.success(request,
+                                 "Selected Menu's successfully updated as Inactive")
             elif request.GET.get('action') == 'Delete':
-                Menu.objects.filter(id__in=request.GET.getlist('menu_ids[]')).delete()
-                messages.success(request, "Selected Menu's successfully deleted!")
+                Menu.objects.filter(
+                    id__in=request.GET.getlist('menu_ids[]')).delete()
+                messages.success(request,
+                                 "Selected Menu's successfully deleted!")
             return JsonResponse({'response': True})
         else:
-            messages.warning(request, 'Please select a record to perform this action')
+            messages.warning(request,
+                             'Please select a record to perform this action')
             return JsonResponse({'response': False})
 
 
@@ -922,7 +991,6 @@ def theme_status_update(request, theme_slug):
 
 
 class DeleteThemeView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
         theme = get_object_or_404(Theme, id=kwargs.get('pk'))
         theme.delete()
@@ -930,19 +998,25 @@ class DeleteThemeView(AdminOnlyMixin, View):
 
 
 class ThemesBulkActionsView(AdminOnlyMixin, View):
-
     def get(self, request, *args, **kwargs):
         if 'theme_ids[]' in request.GET:
             if request.GET.get('action') == 'False':
-                Theme.objects.filter(id__in=request.GET.getlist('theme_ids[]')).update(enabled=False)
-                messages.success(request, "Selected Theme's successfully updated as Disabled")
+                Theme.objects.filter(
+                    id__in=request.GET.getlist('theme_ids[]')).update(
+                    enabled=False)
+                messages.success(request,
+                                 "Selected Theme's successfully updated as Disabled")
             elif request.GET.get('action') == 'Delete':
-                Theme.objects.filter(id__in=request.GET.getlist('theme_ids[]')).delete()
-                messages.success(request, "Selected Theme's successfully deleted!")
+                Theme.objects.filter(
+                    id__in=request.GET.getlist('theme_ids[]')).delete()
+                messages.success(request,
+                                 "Selected Theme's successfully deleted!")
             return JsonResponse({'response': True})
         else:
-            messages.warning(request,'Please select at-least one record to perform this action')
+            messages.warning(request,
+                             'Please select at-least one record to perform this action')
             return JsonResponse({'response': False})
+
 
 # social login
 def google_login(request):
@@ -950,11 +1024,13 @@ def google_login(request):
         params = {
             'grant_type': 'authorization_code',
             'code': request.GET.get('code'),
-            'redirect_uri': request.scheme + "://" + request.META['HTTP_HOST'] + reverse('google_login'),
+            'redirect_uri': request.scheme + "://" + request.META[
+                'HTTP_HOST'] + reverse('google_login'),
             'client_id': os.getenv("GP_CLIENT_ID"),
             'client_secret': os.getenv("GP_CLIENT_SECRET")
         }
-        info = requests.post("https://accounts.google.com/o/oauth2/token", data=params)
+        info = requests.post("https://accounts.google.com/o/oauth2/token",
+                             data=params)
         info = info.json()
         url = 'https://www.googleapis.com/oauth2/v1/userinfo'
         params = {'access_token': info['access_token']}
@@ -962,10 +1038,14 @@ def google_login(request):
         response = requests.request('GET', url, **kw)
         user_document = response.json()
         link = "https://plus.google.com/" + user_document['id']
-        picture = user_document['picture'] if 'picture' in user_document.keys() else ""
-        dob = user_document['birthday'] if 'birthday' in user_document.keys() else ""
-        gender = user_document['gender'] if 'gender' in user_document.keys() else ""
-        link = user_document['link'] if 'link' in user_document.keys() else link
+        picture = user_document[
+            'picture'] if 'picture' in user_document.keys() else ""
+        dob = user_document[
+            'birthday'] if 'birthday' in user_document.keys() else ""
+        gender = user_document[
+            'gender'] if 'gender' in user_document.keys() else ""
+        link = user_document[
+            'link'] if 'link' in user_document.keys() else link
 
         if request.user.is_authenticated():
             user = request.user
@@ -1017,26 +1097,37 @@ def google_login(request):
         return HttpResponseRedirect(reverse_lazy('blog'))
 
     else:
-        rty = "https://accounts.google.com/o/oauth2/auth?client_id=" + os.getenv("GP_CLIENT_ID")\
+        rty = "https://accounts.google.com/o/oauth2/auth?client_id=" + os.getenv(
+            "GP_CLIENT_ID") \
               + "&response_type=code"
         rty += "&scope=https://www.googleapis.com/auth/userinfo.profile \
-               https://www.googleapis.com/auth/userinfo.email&redirect_uri=" + request.scheme\
-               + "://" + request.META['HTTP_HOST'] + reverse('google_login')\
+               https://www.googleapis.com/auth/userinfo.email&redirect_uri=" + request.scheme \
+               + "://" + request.META['HTTP_HOST'] + reverse('google_login') \
                + "&state=1235dfghjkf123"
         return HttpResponseRedirect(rty)
 
 
 def facebook_login(request):
     if 'code' in request.GET:
-        accesstoken = get_access_token_from_code(request.GET['code'], 'https://' + request.META['HTTP_HOST'] + reverse('facebook_login'), os.getenv("FB_APP_ID"), os.getenv("FB_SECRET"))
+        accesstoken = get_access_token_from_code(request.GET['code'],
+                                                 'https://' + request.META[
+                                                     'HTTP_HOST'] + reverse(
+                                                     'facebook_login'),
+                                                 os.getenv("FB_APP_ID"),
+                                                 os.getenv("FB_SECRET"))
         if 'error' in accesstoken.keys():
             messages.error(request, "Sorry, Your session has been expired")
             return render(request, '404.html')
         graph = GraphAPI(accesstoken['access_token'])
-        accesstoken = graph.extend_access_token(os.getenv("FB_APP_ID"), os.getenv("FB_SECRET"))['accesstoken']
-        hometown = profile['hometown']['name'] if 'hometown' in profile.keys() else ''
-        location = profile['location']['name'] if 'location' in profile.keys() else ''
-        bday = datetime.strptime(profile['birthday'], '%m/%d/%Y').strftime('%Y-%m-%d') if 'birthday' in profile.keys() else '1970-09-09'
+        accesstoken = graph.extend_access_token(os.getenv("FB_APP_ID"),
+                                                os.getenv("FB_SECRET"))[
+            'accesstoken']
+        hometown = profile['hometown'][
+            'name'] if 'hometown' in profile.keys() else ''
+        location = profile['location'][
+            'name'] if 'location' in profile.keys() else ''
+        bday = datetime.strptime(profile['birthday'], '%m/%d/%Y').strftime(
+            '%Y-%m-%d') if 'birthday' in profile.keys() else '1970-09-09'
 
         if 'email' in profile.keys():
             user, created = User.objects.get_or_create(
@@ -1099,12 +1190,16 @@ def facebook_login(request):
             messages.success(request, "Loggedin successfully")
             return HttpResponseRedirect(reverse_lazy('blog'))
         else:
-            message.error(request, "Sorry, We didnt find your email id through facebook")
+            message.error(request,
+                          "Sorry, We didnt find your email id through facebook")
             return render(request, '404.html')
     elif 'error' in request.GET:
         print(request.GET)
     else:
-        rty = "https://graph.facebook.com/oauth/authorize?client_id=" + os.getenv("FB_APP_ID") + "&redirect_uri=" + 'https://' + request.META['HTTP_HOST'] + reverse('facebook_login') + "&scope=manage_pages,read_stream, user_about_me, user_birthday, user_location, user_work_history, user_hometown, user_website, email, user_likes, user_groups"
+        rty = "https://graph.facebook.com/oauth/authorize?client_id=" + os.getenv(
+            "FB_APP_ID") + "&redirect_uri=" + 'https://' + request.META[
+                  'HTTP_HOST'] + reverse(
+            'facebook_login') + "&scope=manage_pages,read_stream, user_about_me, user_birthday, user_location, user_work_history, user_hometown, user_website, email, user_likes, user_groups"
         return HttpResponseRedirect(rty)
 
 
@@ -1117,7 +1212,8 @@ class ChangePasswordView(LoginRequiredMixin, FormView):
         user = self.request.user
         user.set_password(form.cleaned_data.get("password"))
         user.save()
-        user = authenticate(username=user.username, password=form.cleaned_data.get("password"))
+        user = authenticate(username=user.username,
+                            password=form.cleaned_data.get("password"))
         login(self.request, user)
         messages.success(self.request, "your password has been changed!!!")
         return JsonResponse({"error": False, "success_url": reverse("blog")})
