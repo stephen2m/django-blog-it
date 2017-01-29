@@ -1,6 +1,7 @@
 import re
-import htmlentitydefs
 from django import template
+from django.utils.encoding import force_unicode
+from django.utils.safestring import mark_safe
 from pygments import highlight
 from pygments.lexers import guess_lexer
 from pygments.lexers.python import PythonLexer
@@ -8,34 +9,6 @@ from pygments.formatters.html import HtmlFormatter
 
 register = template.Library()
 code_regex = re.compile(r'<pre>(.*?)</pre>', re.DOTALL)
-
-
-def unescape(text):
-    """
-    Removes HTML or XML character references and entities from a text string.
-
-    :param text The HTML (or XML) source text.
-    :return The plain text, as a Unicode string, if necessary.
-    """
-    def fixup(m):
-        text = m.group(0)
-        if text[:2] == "&#":
-            # character reference
-            try:
-                if text[:3] == "&#x":
-                    return unichr(int(text[3:-1], 16))
-                else:
-                    return unichr(int(text[2:-1]))
-            except ValueError:
-                pass
-        else:
-            # named entity
-            try:
-                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
-            except KeyError:
-                pass
-        return text  # leave as is
-    return re.sub("&#?\w+;", fixup, text)
 
 
 @register.filter
@@ -50,7 +23,6 @@ def pygmentify(value):
                 lexer = guess_lexer(code_string)
             except ValueError:
                 lexer = PythonLexer()
-
             pygmented_string = highlight(
                 code_string, lexer, HtmlFormatter()
             )
@@ -60,6 +32,6 @@ def pygmentify(value):
 
         to_return += value[last_end:]
 
-        return unescape(to_return)
+        return mark_safe(force_unicode(to_return))
     except Exception:
-        return value
+        return mark_safe(force_unicode(value))

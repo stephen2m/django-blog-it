@@ -57,7 +57,7 @@
           </tr>
           <tr>
             <td><strong>Content</strong>: <div class="content" itemprop="articleBody">
-                {% cache 500 blog_content %}{{ blog_name.content|pygmentify|safe }}{% endcache %}</div></td>
+                {% cache 500 blog_content %}{{ blog_name.content|pygmentify }}{% endcache %}</div></td>
           </tr>
           <tr>
             <td class="widget tags"><strong>Tags</strong>:
