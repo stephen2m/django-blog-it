@@ -1,7 +1,8 @@
-from django.http.response import HttpResponseRedirect
-from .models import UserRole, Post
-from django.shortcuts import render, render_to_response, get_object_or_404
 from django.contrib import messages
+from django.http.response import HttpResponseRedirect
+from django.shortcuts import get_object_or_404
+
+from .models import UserRole, Post
 
 
 def get_user_role(user):
@@ -12,7 +13,6 @@ def get_user_role(user):
 
 
 class AdminOnlyMixin(object):
-
     def dispatch(self, request, *args, **kwargs):
         user = self.request.user
         if not (user.is_authenticated and user.is_active):
@@ -29,7 +29,6 @@ class AdminOnlyMixin(object):
 
 
 class AuthorNotAllowedMixin(object):
-
     def dispatch(self, request, *args, **kwargs):
         user = self.request.user
         if not (user.is_authenticated and user.is_active):
@@ -40,11 +39,11 @@ class AuthorNotAllowedMixin(object):
         if not (user.is_superuser or user_role):
             messages.warning(request, "You don't have permission")
             return HttpResponseRedirect(request.META.get('HTTP_REFERER', "/"))
-        return super(AuthorNotAllowedMixin, self).dispatch(request, *args, **kwargs)
+        return super(AuthorNotAllowedMixin, self).dispatch(request, *args,
+                                                           **kwargs)
 
 
 class AdminMixin(object):
-
     def dispatch(self, request, *args, **kwargs):
         user = self.request.user
         if not (user.is_authenticated and user.is_active):
@@ -57,15 +56,14 @@ class AdminMixin(object):
 
 
 class PostAccessRequiredMixin(object):
-
     def dispatch(self, request, *args, **kwargs):
         self.object = get_object_or_404(Post, slug=kwargs.get('blog_slug'))
 
         # Checking the permissions
-        if not(
-            self.object.is_deletable_by(request.user) or
-            request.user.is_superuser is True or
-            get_user_role(request.user) != 'Author'
+        if not (
+                        self.object.is_deletable_by(request.user) or
+                            request.user.is_superuser is True or
+                        get_user_role(request.user) != 'Author'
         ):
             # TODO: Add "PermissionDenied" message
             messages.warning(request, "You don't have permission")

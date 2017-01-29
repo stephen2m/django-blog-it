@@ -1,18 +1,18 @@
 import json
 import os
 import uuid
-
 import requests
+
 from PIL import Image
 from django.conf import settings
-from django.contrib import auth
-from django.contrib import messages
+from django.contrib import auth, messages
 from django.contrib.auth import logout, login, load_backend
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.core.files import File
 from django.db.models.aggregates import Max
 from django.forms import inlineformset_factory
-from django.http import HttpResponseRedirect, HttpResponse, Http404
+from django.http import HttpResponseRedirect, HttpResponse, Http404, \
+    JsonResponse
 from django.shortcuts import render, render_to_response, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
@@ -29,12 +29,11 @@ except ImportError:
     from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.urlresolvers import reverse, reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, DeleteView, \
-    UpdateView, FormView, TemplateView, View
+from django.views.generic import ListView, DetailView, CreateView, \
+    DeleteView, UpdateView, FormView, TemplateView, View
 from django.views.generic.edit import ProcessFormView
 from .mixins import AdminMixin, PostAccessRequiredMixin, AdminOnlyMixin, \
     AuthorNotAllowedMixin
-from django.http import JsonResponse
 
 admin_required = user_passes_test(lambda user: user.is_active, login_url='/')
 

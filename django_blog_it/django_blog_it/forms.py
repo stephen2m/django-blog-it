@@ -1,9 +1,9 @@
 from django import forms
-from .models import Post, Category, Page, Menu, ContactUsSettings, ROLE_CHOICE, Theme
-from django.template.defaultfilters import slugify
-# for authentication
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.template.defaultfilters import slugify
+
+from .models import Post, Category, Page, Menu, ContactUsSettings, ROLE_CHOICE, Theme
 
 
 class UserForm(forms.ModelForm):
@@ -12,16 +12,19 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'email', 'password', 'is_active')
+        fields = ('username', 'first_name', 'last_name', 'email', 'password',
+                  'is_active')
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
         username = self.cleaned_data.get('username')
         if self.instance.id:
-            if User.objects.filter(email=email, username=username).exclude(id=self.instance.id).count():
+            if User.objects.filter(email=email, username=username).exclude(
+                    id=self.instance.id).count():
                 raise forms.ValidationError(u'Email addresses must be unique.')
         else:
-            if User.objects.filter(email=email).exclude(username=username).count():
+            if User.objects.filter(email=email).exclude(
+                    username=username).count():
                 raise forms.ValidationError(u'Email addresses must be unique.')
         return email
 
@@ -77,17 +80,21 @@ class BlogPostForm(forms.ModelForm):
         for field in iter(self.fields):
             if field == 'tags':
                 self.fields[field].widget.attrs.update({
-                    'class': 'form-control myTags', "placeholder": "Please enter your Blog " + field.capitalize()
+                    'class': 'form-control myTags',
+                    "placeholder": "Please enter your Blog " + field.capitalize()
                 })
             else:
                 self.fields[field].widget.attrs.update({
-                    'class': 'form-control', "placeholder": "Please enter your Blog " + field.capitalize()
+                    'class': 'form-control',
+                    "placeholder": "Please enter your Blog " + field.capitalize()
                 })
-        self.fields['category'].queryset = Category.objects.filter(is_active=True)
+        self.fields['category'].queryset = Category.objects.filter(
+            is_active=True)
 
     def clean_status(self):
         if self.user_role == "Author":
-            raise forms.ValidationError("Admin and Publisher can change status only.")
+            raise forms.ValidationError(
+                "Admin and Publisher can change status only.")
         return self.cleaned_data.get("status")
 
 
@@ -98,11 +105,16 @@ class BlogCategoryForm(forms.ModelForm):
 
     def clean_name(self):
         if not self.instance.id:
-            if Category.objects.filter(slug=slugify(self.cleaned_data['name'])).exists():
-                raise forms.ValidationError('Category with this Name already exists.')
+            if Category.objects.filter(
+                    slug=slugify(self.cleaned_data['name'])).exists():
+                raise forms.ValidationError(
+                    'Category with this Name already exists.')
         else:
-            if Category.objects.filter(name__icontains=self.cleaned_data['name']).exclude(id=self.instance.id):
-                raise forms.ValidationError('Category with this Name already exists.')
+            if Category.objects.filter(
+                    name__icontains=self.cleaned_data['name']).exclude(
+                    id=self.instance.id):
+                raise forms.ValidationError(
+                    'Category with this Name already exists.')
 
         return self.cleaned_data['name']
 
@@ -112,7 +124,8 @@ class BlogCategoryForm(forms.ModelForm):
         for field in iter(self.fields):
             if max(enumerate(iter(self.fields)))[0] != field:
                 self.fields[field].widget.attrs.update({
-                    'class': 'form-control', "placeholder": "Please enter your Category " + field.capitalize()
+                    'class': 'form-control',
+                    "placeholder": "Please enter your Category " + field.capitalize()
                 })
 
 
@@ -131,16 +144,22 @@ class PageForm(forms.ModelForm):
         for field in iter(self.fields):
             if max(enumerate(iter(self.fields)))[0] != field:
                 self.fields[field].widget.attrs.update({
-                    'class': 'form-control', "placeholder": "Please enter your Page " + field.capitalize()
+                    'class': 'form-control',
+                    "placeholder": "Please enter your Page " + field.capitalize()
                 })
 
     def clean_title(self):
         if not self.instance.id:
-            if self.Meta.model.objects.filter(slug=slugify(self.cleaned_data['title'])).exists():
-                raise forms.ValidationError('Page with this title already exists.')
+            if self.Meta.model.objects.filter(
+                    slug=slugify(self.cleaned_data['title'])).exists():
+                raise forms.ValidationError(
+                    'Page with this title already exists.')
         else:
-            if self.Meta.model.objects.filter(title__icontains=self.cleaned_data['title']).exclude(id=self.instance.id):
-                raise forms.ValidationError('Page with this title already exists.')
+            if self.Meta.model.objects.filter(
+                    title__icontains=self.cleaned_data['title']).exclude(
+                    id=self.instance.id):
+                raise forms.ValidationError(
+                    'Page with this title already exists.')
 
         return self.cleaned_data['title']
 
@@ -156,12 +175,12 @@ class MenuForm(forms.ModelForm):
         for field in iter(self.fields):
             if max(enumerate(iter(self.fields)))[0] != field:
                 self.fields[field].widget.attrs.update({
-                    'class': 'form-control', "placeholder": "Please enter your Menu " + field.capitalize()
+                    'class': 'form-control',
+                    "placeholder": "Please enter your Menu " + field.capitalize()
                 })
 
 
 class ContactUsSettingsForm(forms.ModelForm):
-
     class Meta:
         model = ContactUsSettings
         exclude = ()
@@ -172,12 +191,12 @@ class ContactUsSettingsForm(forms.ModelForm):
             if max(enumerate(iter(self.fields)))[0] != field:
                 self.fields[field].widget.attrs.update({
                     'class': 'form-control',
-                    "placeholder": "Please enter your " + field.replace('_', ' ').capitalize()
+                    "placeholder": "Please enter your " + field.replace('_',
+                                                                        ' ').capitalize()
                 })
 
 
 class BlogThemeForm(forms.ModelForm):
-
     class Meta:
         model = Theme
         exclude = ('slug',)
@@ -216,10 +235,14 @@ class ContactForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(ContactForm, self).__init__(*args, **kwargs)
-        self.fields['contact_name'].widget.attrs['placeholder'] = "Enter Your Name (Required)"
-        self.fields['contact_email'].widget.attrs['placeholder'] = "Enter Your Email (Required)"
-        self.fields['contact_website'].widget.attrs['placeholder'] = "Enter Your Website (Required)"
-        self.fields['content'].widget.attrs['placeholder'] = "What do you want to say?"
+        self.fields['contact_name'].widget.attrs[
+            'placeholder'] = "Enter Your Name (Required)"
+        self.fields['contact_email'].widget.attrs[
+            'placeholder'] = "Enter Your Email (Required)"
+        self.fields['contact_website'].widget.attrs[
+            'placeholder'] = "Enter Your Website (Required)"
+        self.fields['content'].widget.attrs[
+            'placeholder'] = "What do you want to say?"
         for field in iter(self.fields):
             self.fields[field].widget.attrs.update({
                 'class': 'form-control'
@@ -227,8 +250,10 @@ class ContactForm(forms.Form):
 
 
 class ChangePasswordForm(forms.Form):
-    password = forms.CharField(widget=forms.PasswordInput(attrs={"class": "form-control"}))
-    confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={"class": "form-control"}))
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"class": "form-control"}))
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"class": "form-control"}))
 
     def clean_confirm_password(self):
         password = self.cleaned_data.get("password")
@@ -248,4 +273,5 @@ class CustomBlogSlugInlineFormSet(forms.BaseInlineFormSet):
             if form.cleaned_data.get("is_active"):
                 active_slugs += 1
         if active_slugs > 1:
-            raise forms.ValidationError("Only one slug can be active at a time.")
+            raise forms.ValidationError(
+                "Only one slug can be active at a time.")

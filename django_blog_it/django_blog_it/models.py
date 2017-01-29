@@ -1,11 +1,11 @@
 import datetime
 import os
-from django.db import models
-from django.template.defaultfilters import slugify
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
-
+from django.db import models
+from django.template.defaultfilters import slugify
 
 ROLE_CHOICE = (
     ('Admin', 'Admin'),
@@ -99,9 +99,11 @@ class Post(models.Model):
     content = models.TextField()
     category = models.ForeignKey(Category)
     tags = models.ManyToManyField(Tags, related_name='rel_posts')
-    status = models.CharField(max_length=10, choices=STATUS_CHOICE, default='Drafted')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICE,
+                              default='Drafted')
     keywords = models.TextField(max_length=500, blank=True)
-    featured_image = models.ImageField(upload_to='static/blog/uploads/%Y/%m/%d/', blank=True, null=True)
+    featured_image = models.ImageField(
+        upload_to='static/blog/uploads/%Y/%m/%d/', blank=True, null=True)
 
     def save(self, *args, **kwargs):
         tempslug = slugify(self.title)
@@ -139,11 +141,14 @@ class Post(models.Model):
     def email_to_admins_on_post_create(self):
         email = os.getenv("DEFAULT_EMAIL")
         if not self.id and email:
-            admin_roles = UserRole.objects.select_related().filter(role="Admin")
-            admin_emails = [admin_role.user.email for admin_role in admin_roles]
+            admin_roles = UserRole.objects.select_related().filter(
+                role="Admin")
+            admin_emails = [admin_role.user.email for admin_role in
+                            admin_roles]
             user = self.user
             author_name = user.first_name + user.last_name if user.first_name else user.email
-            text = "New blog post has been created by {0} with the name {1} in the category {2}.".format(author_name, self.title, self.category.name)
+            text = "New blog post has been created by {0} with the name {1} in the category {2}.".format(
+                author_name, self.title, self.category.name)
             send_mail(
                 subject="New Blog Post created",
                 message=text,
@@ -153,12 +158,16 @@ class Post(models.Model):
             )
 
     def store_old_slug(self, old_slug):
-        query = Post_Slugs.objects.filter(blog=self, slug=old_slug).values_list("slug", flat=True)
+        query = Post_Slugs.objects.filter(blog=self,
+                                          slug=old_slug).values_list("slug",
+                                                                     flat=True)
         if not (query and old_slug != self.slug):
-            old_slug, _ = Post_Slugs.objects.get_or_create(blog=self, slug=old_slug)
+            old_slug, _ = Post_Slugs.objects.get_or_create(blog=self,
+                                                           slug=old_slug)
             old_slug.is_active = False
             old_slug.save()
-        active_slug, _ = Post_Slugs.objects.get_or_create(blog=self, slug=self.slug)
+        active_slug, _ = Post_Slugs.objects.get_or_create(blog=self,
+                                                          slug=self.slug)
         active_slug.is_active = True
         active_slug.save()
 
@@ -201,7 +210,8 @@ class Image_File(models.Model):
     upload = models.FileField(upload_to="static/uploads/%Y/%m/%d/")
     date_created = models.DateTimeField(default=datetime.datetime.now)
     is_image = models.BooleanField(default=True)
-    thumbnail = models.FileField(upload_to="static/uploads/%Y/%m/%d/", blank=True, null=True)
+    thumbnail = models.FileField(upload_to="static/uploads/%Y/%m/%d/",
+                                 blank=True, null=True)
 
     def __str__(self):
         return self.date_created

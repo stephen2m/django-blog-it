@@ -1,9 +1,11 @@
 import datetime
 import os
+
 from django import template
+
+from django_blog_it import settings
 from django_blog_it.django_blog_it.models import Post, Tags, Menu
 from django_blog_it.django_blog_it.views import get_user_role
-from django_blog_it import settings
 
 register = template.Library()
 
@@ -12,7 +14,9 @@ register = template.Library()
 def get_archives(context):
     archives = []
     dates = []
-    for each_object in Post.objects.filter(category__is_active=True, status="Published").order_by('created_on').values('created_on'):
+    for each_object in Post.objects.filter(category__is_active=True,
+                                           status="Published").order_by(
+            'created_on').values('created_on'):
         for date in each_object.values():
             dates.append((date.year, date.month, 1))
 
@@ -54,7 +58,8 @@ def get_range(value):
 
 @register.inclusion_tag('posts/new_nav_menu.html', takes_context=True)
 def load_menu(context):
-    context['menu'] = Menu.objects.filter(parent=None, status=True).order_by("lvl")
+    context['menu'] = Menu.objects.filter(parent=None, status=True).order_by(
+        "lvl")
     return context
 
 
